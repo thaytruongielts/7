@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trắc nghiệm Kéo Thả</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .draggable {
+            cursor: grab;
+            user-select: none;
+            transition: all 0.2s ease-in-out;
+        }
+        .draggable:active {
+            cursor: grabbing;
+        }
+        .dropzone {
+            transition: all 0.2s ease-in-out;
+            border: 2px dashed #d1d5db;
+        }
+        .dropzone.drag-over {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+        }
+        .correct {
+            background-color: #d1fae5 !important;
+        }
+        .incorrect {
+            background-color: #fee2e2 !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div id="app" class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Trắc nghiệm Ngữ Pháp Tiếng Anh</h1>
+        <p class="text-center text-gray-600 mb-8">Hãy kéo các đáp án vào ô trống để hoàn thành câu hỏi.</p>
+
+        <div id="quiz-container" class="space-y-8">
+            <!-- Câu hỏi sẽ được chèn vào đây bởi JavaScript -->
+        </div>
+
+        <div class="mt-8 flex justify-center space-x-4">
+            <button id="check-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-full shadow-lg transition transform hover:scale-105">
+                Kiểm Tra
+            </button>
+            <button id="reset-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-full shadow-lg transition transform hover:scale-105">
+                Làm Lại
+            </button>
+        </div>
+
+        <div id="result-container" class="mt-8 text-center text-lg font-semibold"></div>
+    </div>
+
+    <script>
+        // Dữ liệu câu hỏi về ngữ pháp tiếng Anh
+        const quizData = [
+            { question_number: 1, question: 'Điền vào chỗ trống: My sister _____ (play) the piano every day.', option_a: 'A. play', option_b: 'B. plays', option_c: 'C. is playing', option_d: 'D. played', correct_answer: 'B. plays', feedback: '"Every day" là dấu hiệu của thì Hiện tại đơn. Chủ ngữ số ít "my sister" cần động từ thêm "s".' },
+            { question_number: 2, question: 'Chọn câu đúng về thì: Look! He _____ (ride) his bike very fast.', option_a: 'A. rides', option_b: 'B. is riding', option_c: 'C. rode', option_d: 'D. was riding', correct_answer: 'B. is riding', feedback: '"Look!" là dấu hiệu của thì Hiện tại tiếp diễn, diễn tả hành động đang xảy ra tại thời điểm nói.' },
+            { question_number: 3, question: 'Điền vào chỗ trống: They _____ (not / go) to the cinema last weekend.', option_a: 'A. don\'t go', option_b: 'B. didn\'t go', option_c: 'C. aren\'t going', option_d: 'D. haven\'t gone', correct_answer: 'B. didn\'t go', feedback: '"Last weekend" là dấu hiệu của thì Quá khứ đơn. Câu phủ định dùng "didn\'t + V nguyên mẫu".' },
+            { question_number: 4, question: 'Chọn câu đúng về từ vựng: We learn about history in the _____ (thư viện).', option_a: 'A. canteen', option_b: 'B. library', option_c: 'C. playground', option_d: 'D. classroom', correct_answer: 'B. library', feedback: '"Library" (thư viện) là nơi chúng ta thường đọc sách về các chủ đề khác nhau, bao gồm lịch sử.' },
+            { question_number: 5, question: 'Điền vào chỗ trống: My school has a big _____ (sân chơi) with many trees.', option_a: 'A. library', option_b: 'B. playground', option_c: 'C. canteen', option_d: 'D. computer room', correct_answer: 'B. playground', feedback: '"Playground" (sân chơi) là nơi học sinh thường chơi đùa.' },
+            { question_number: 6, question: 'Chọn từ phù hợp: I think that learning English is very _____.', option_a: 'A. difficult', option_b: 'B. boring', option_c: 'C. useful', option_d: 'D. all of the above', correct_answer: 'D. all of the above', feedback: 'Tùy vào quan điểm của mỗi người, tiếng Anh có thể được coi là "difficult" (khó), "boring" (chán) hoặc "useful" (hữu ích). Tuy nhiên, "useful" là từ phổ biến nhất trong ngữ cảnh này.' },
+            { question_number: 7, question: 'Điền vào chỗ trống: What _____ you _____ (do) at the moment?', option_a: 'A. do / do', option_b: 'B. are / doing', option_c: 'C. did / do', option_d: 'D. will / do', correct_answer: 'B. are / doing', feedback: '"At the moment" là dấu hiệu của thì Hiện tại tiếp diễn.' },
+            { question_number: 8, question: 'Chọn câu đúng về so sánh hơn: My brother is _____ (tall) than me.', option_a: 'A. taller', option_b: 'B. more tall', option_c: 'C. the tallest', option_d: 'D. as tall as', correct_answer: 'A. taller', feedback: '"Than" là dấu hiệu của so sánh hơn, tính từ ngắn "tall" thêm "-er".' },
+            { question_number: 9, question: 'Điền vào chỗ trống: She _____ (write) a letter to her friend yesterday.', option_a: 'A. writes', option_b: 'B. is writing', option_c: 'C. wrote', option_d: 'D. has written', correct_answer: 'C. wrote', feedback: '"Yesterday" là dấu hiệu của thì Quá khứ đơn. "Write" là động từ bất quy tắc (V2 là "wrote").' },
+            { question_number: 10, question: 'Chọn câu đúng về động từ khuyết thiếu: You _____ (should / study) harder for your exams.', option_a: 'A. should studies', option_b: 'B. should study', option_c: 'C. should studying', option_d: 'D. should to study', correct_answer: 'B. should study', feedback: '"Should" là động từ khuyết thiếu, sau nó là động từ nguyên mẫu không "to".' },
+            { question_number: 11, question: 'Điền vào chỗ trống: My dad _____ (work) in a factory. He is an engineer.', option_a: 'A. works', option_b: 'B. is working', option_c: 'C. worked', option_d: 'D. will work', correct_answer: 'A. works', feedback: '"Work in a factory" là sự thật về nghề nghiệp, dùng thì Hiện tại đơn.' },
+            { question_number: 12, question: 'Chọn câu đúng về câu hỏi Yes/No: _____ they _____ (like) to play sports?', option_a: 'A. Does / like', option_b: 'B. Do / likes', option_c: 'C. Do / like', option_d: 'D. Does / likes', correct_answer: 'C. Do / like', feedback: 'Câu hỏi Yes/No với chủ ngữ số nhiều "they" dùng "Do" và động từ nguyên mẫu.' },
+            { question_number: 13, question: 'Điền vào chỗ trống: He _____ (not / have) a tablet, but he has a computer.', option_a: 'A. don\'t have', option_b: 'B. doesn\'t have', option_c: 'C. didn\'t have', option_d: 'D. hasn\'t had', correct_answer: 'B. doesn\'t have', feedback: '"Doesn\'t have" là cấu trúc phủ định của Hiện tại đơn với chủ ngữ số ít "He".' },
+            { question_number: 14, question: 'Chọn từ đúng về mạo từ: There is _____ old book on the shelf.', option_a: 'A. a', option_b: 'B. an', option_c: 'C. the', option_d: 'D. some', correct_answer: 'B. an', feedback: '"Old" bắt đầu bằng nguyên âm, nên dùng "an".' },
+            { question_number: 15, question: 'Điền vào chỗ trống: The Internet is a great place to _____ new people.', option_a: 'A. meet', option_b: 'B. meeting', option_c: 'C. met', option_d: 'D. meets', correct_answer: 'A. meet', feedback: 'Sau "to" là động từ nguyên mẫu.' },
+            { question_number: 16, question: 'Chọn từ phù hợp: She loves to _____ (chụp ảnh) of nature.', option_a: 'A. take pictures', option_b: 'B. make pictures', option_c: 'C. do pictures', option_d: 'D. find pictures', correct_answer: 'A. take pictures', feedback: '"Take pictures" (chụp ảnh) là cụm từ đúng.' },
+            { question_number: 17, question: 'Điền vào chỗ trống: How _____ people are there in your family?', option_a: 'A. much', option_b: 'B. many', option_c: 'C. old', option_d: 'D. far', correct_answer: 'B. many', feedback: '"How many" dùng để hỏi số lượng danh từ đếm được (people).' },
+            { question_number: 18, question: 'Chọn câu đúng về thì: He _____ (travel) to many countries in the past.', option_a: 'A. travels', option_b: 'B. is traveling', option_c: 'C. traveled', option_d: 'D. has traveled', correct_answer: 'C. traveled', feedback: '"In the past" là dấu hiệu của thì Quá khứ đơn.' },
+            { question_number: 19, question: 'Điền vào chỗ trống: The weather _____ (be) sunny today.', option_a: 'A. is', option_b: 'B. are', option_c: 'C. was', option_d: 'D. will be', correct_answer: 'A. is', feedback: '"Today" là dấu hiệu của thì Hiện tại đơn hoặc Hiện tại tiếp diễn, "is" phù hợp với cả hai.' },
+            { question_number: 20, question: 'Chọn câu đúng về câu mệnh lệnh: _____ (Don\'t / use) your phone in class.', option_a: 'A. Don\'t use', option_b: 'B. Doesn\'t use', option_c: 'C. Not use', option_d: 'D. Don\'t to use', correct_answer: 'A. Don\'t use', feedback: 'Câu mệnh lệnh phủ định dùng "Don\'t + V nguyên mẫu".' },
+            { question_number: 21, question: 'Điền vào chỗ trống: My cousin is very _____ (thân thiện) with everyone.', option_a: 'A. unfriendly', option_b: 'B. friendly', option_c: 'C. friend', option_d: 'D. friendship', correct_answer: 'B. friendly', feedback: '"Friendly" (thân thiện) là tính từ phù hợp.' },
+            { question_number: 22, question: 'Chọn từ đúng về so sánh nhất: She is _____ (good) student in the class.', option_a: 'A. gooder', option_b: 'B. better', option_c: 'C. the best', option_d: 'D. the most good', correct_answer: 'C. the best', feedback: '"Good" là tính từ bất quy tắc, so sánh nhất là "the best".' },
+            { question_number: 23, question: 'Điền vào chỗ trống: They _____ (listen) to music at the moment.', option_a: 'A. listens', option_b: 'B. listen', option_c: 'C. are listening', option_d: 'D. were listening', correct_answer: 'C. are listening', feedback: '"At the moment" là dấu hiệu của thì Hiện tại tiếp diễn.' },
+            { question_number: 24, question: 'Chọn câu đúng về câu hỏi Wh-: _____ do you live?', option_a: 'A. What', option_b: 'B. Who', option_c: 'C. Where', option_d: 'D. When', correct_answer: 'C. Where', feedback: '"Where" (ở đâu) dùng để hỏi về địa điểm.' },
+            { question_number: 25, question: 'Điền vào chỗ trống: He _____ (play) basketball yesterday.', option_a: 'A. play', option_b: 'B. plays', option_c: 'C. played', option_d: 'D. is playing', correct_answer: 'C. played', feedback: '"Yesterday" là dấu hiệu của thì Quá khứ đơn. "Play" là động từ có quy tắc, thêm "-ed".' }
+        ];
+
+        let draggedItem = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderQuiz();
+            setupEventListeners();
+        });
+
+        function renderQuiz() {
+            const quizContainer = document.getElementById('quiz-container');
+            quizContainer.innerHTML = '';
+            quizData.forEach(q => {
+                const questionElement = document.createElement('div');
+                questionElement.classList.add('p-6', 'bg-gray-50', 'rounded-xl', 'shadow-md', 'border', 'border-gray-200');
+
+                const questionText = document.createElement('p');
+                questionText.classList.add('text-lg', 'font-medium', 'text-gray-700', 'mb-4');
+                questionText.textContent = q.question_number + '. ' + q.question;
+                questionElement.appendChild(questionText);
+
+                const optionsContainer = document.createElement('div');
+                optionsContainer.classList.add('options-container', 'flex', 'flex-col', 'sm:flex-row', 'sm:flex-wrap', 'gap-4', 'justify-between');
+
+                const options = [q.option_a, q.option_b, q.option_c, q.option_d];
+                // Xáo trộn các đáp án để không bị cố định
+                options.sort(() => Math.random() - 0.5);
+
+                options.forEach(option => {
+                    const optionElement = document.createElement('div');
+                    optionElement.classList.add('draggable', 'p-3', 'bg-white', 'rounded-lg', 'shadow-sm', 'border', 'border-gray-200', 'flex-1', 'text-center', 'font-medium', 'text-gray-800');
+                    optionElement.textContent = option;
+                    optionElement.setAttribute('draggable', true);
+                    optionElement.dataset.value = option; // Lưu giá trị của đáp án
+                    optionsContainer.appendChild(optionElement);
+                });
+
+                const dropzone = document.createElement('div');
+                dropzone.classList.add('dropzone', 'p-6', 'bg-gray-100', 'rounded-lg', 'text-center', 'min-h-16', 'flex', 'items-center', 'justify-center', 'text-gray-500', 'mt-4');
+                dropzone.textContent = 'Kéo đáp án vào đây...';
+                dropzone.dataset.correctAnswer = q.correct_answer;
+                
+                questionElement.appendChild(optionsContainer);
+                questionElement.appendChild(dropzone);
+                quizContainer.appendChild(questionElement);
+            });
+        }
+
+        function setupEventListeners() {
+            const quizContainer = document.getElementById('quiz-container');
+
+            quizContainer.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('draggable')) {
+                    draggedItem = e.target;
+                    e.target.classList.add('opacity-50');
+                }
+            });
+
+            quizContainer.addEventListener('dragend', (e) => {
+                if (e.target.classList.contains('draggable')) {
+                    e.target.classList.remove('opacity-50');
+                }
+            });
+
+            quizContainer.addEventListener('dragover', (e) => {
+                const dropzone = e.target.closest('.dropzone');
+                if (dropzone) {
+                    e.preventDefault();
+                    dropzone.classList.add('drag-over');
+                }
+            });
+
+            quizContainer.addEventListener('dragleave', (e) => {
+                const dropzone = e.target.closest('.dropzone');
+                if (dropzone) {
+                    dropzone.classList.remove('drag-over');
+                }
+            });
+
+            quizContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const dropzone = e.target.closest('.dropzone');
+                if (dropzone && draggedItem) {
+                    // Tìm phần tử draggable đã có trong dropzone
+                    const existingItem = dropzone.querySelector('.draggable');
+                    
+                    if (existingItem) {
+                        // Di chuyển phần tử cũ về vị trí ban đầu
+                        const originalContainer = existingItem.closest('.p-6').querySelector('.options-container');
+                        if (originalContainer) {
+                             originalContainer.appendChild(existingItem);
+                             existingItem.classList.remove('correct', 'incorrect');
+                        }
+                    }
+
+                    // Gắn phần tử mới vào dropzone
+                    dropzone.innerHTML = ''; // Xóa placeholder text
+                    dropzone.classList.remove('drag-over');
+                    dropzone.appendChild(draggedItem);
+                }
+            });
+
+            document.getElementById('check-btn').addEventListener('click', () => {
+                checkAnswers();
+            });
+
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                resetQuiz();
+            });
+        }
+
+        function checkAnswers() {
+            const dropzones = document.querySelectorAll('.dropzone');
+            let correctCount = 0;
+
+            dropzones.forEach((dropzone, index) => {
+                // Xóa phản hồi cũ trước khi kiểm tra
+                const oldFeedback = dropzone.querySelector('.feedback');
+                if (oldFeedback) oldFeedback.remove();
+                
+                const droppedItem = dropzone.querySelector('.draggable');
+                const correctAnswer = dropzone.dataset.correctAnswer;
+                
+                const feedbackDiv = document.createElement('p');
+                feedbackDiv.classList.add('text-sm', 'mt-2', 'font-normal');
+
+                if (droppedItem && droppedItem.dataset.value === correctAnswer) {
+                    dropzone.classList.add('correct');
+                    dropzone.classList.remove('incorrect');
+                    droppedItem.classList.add('correct');
+                    droppedItem.classList.remove('incorrect');
+                    feedbackDiv.classList.add('text-green-700', 'feedback');
+                    feedbackDiv.textContent = 'Đúng rồi!';
+                    correctCount++;
+                } else {
+                    dropzone.classList.add('incorrect');
+                    dropzone.classList.remove('correct');
+                    if (droppedItem) {
+                        droppedItem.classList.add('incorrect');
+                        droppedItem.classList.remove('correct');
+                    }
+                    feedbackDiv.classList.add('text-red-700', 'feedback');
+                    feedbackDiv.textContent = `Sai. Đáp án đúng là: ${correctAnswer}.`;
+                }
+                
+                // Thêm phản hồi giải thích
+                const feedbackText = quizData[index].feedback;
+                const explainFeedback = document.createElement('p');
+                explainFeedback.classList.add('text-sm', 'mt-1', 'text-gray-500', 'feedback');
+                explainFeedback.textContent = feedbackText;
+
+                dropzone.appendChild(feedbackDiv);
+                dropzone.appendChild(explainFeedback);
+            });
+
+            const resultContainer = document.getElementById('result-container');
+            resultContainer.textContent = `Bạn đã trả lời đúng ${correctCount} / ${quizData.length} câu.`;
+            resultContainer.classList.remove('text-green-600', 'text-red-600');
+            if (correctCount === quizData.length) {
+                resultContainer.classList.add('text-green-600');
+            } else {
+                resultContainer.classList.add('text-red-600');
+            }
+        }
+
+        function resetQuiz() {
+            const quizContainer = document.getElementById('quiz-container');
+            quizContainer.innerHTML = '';
+            document.getElementById('result-container').textContent = '';
+            renderQuiz();
+        }
+    </script>
+</body>
+</html>
